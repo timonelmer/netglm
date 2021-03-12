@@ -105,6 +105,7 @@ QAP <- function(dv, iv1,  iv.names, mode = "yQAP" ,samples = 1000, diag = F, dir
 
 
 # mutligroup QAP
+
 QAP.MG <- function(dvs, ivs, iv.list.per = "iv", family = "gaussian",
                    iv.names = iv.names, mode = "yQAP" ,samples = 1000, diag = F, directed = T, 
                    global.deltas = T, ecdf.plot = F, return.perms = F){
@@ -145,18 +146,27 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "iv", family = "gaussian",
   # get the observed estimates
   pb <- txtProgressBar(min = 0, max = samples, style = 3) # set progress bar
   
-  if(directed){
+  if(directed){ # directed
     
-    observedLm <- glm(unlist(dvs) ~ Reduce(rbind,lapply(1:length(ivs),
-                                                        function(x) sapply(ivs[[x]], function(y) y)
-    )), family = family)
-    
-  }else{
-    if(!(family == "gaussian"))stop("non-gaussian estimation not yet implemented for undirected networks")
-    
-    observedLm <- glm(unlist(lapply(dvs, function(x) x[lower.tri(x, diag = diag)])) ~
-                        Reduce(rbind,lapply(1:length(ivs),function(x) sapply(ivs[[x]], function(y) y[lower.tri(y, diag = diag)]))),
-                      family = family)
+    if(family == "gaussian"){
+      observedLm <- lm(unlist(dvs) ~ Reduce(rbind,lapply(1:length(ivs),
+                                                         function(x) sapply(ivs[[x]], function(y) y)
+      )))
+    }else{ # non-gaussian
+      observedLm <- glm(unlist(dvs) ~ Reduce(rbind,lapply(1:length(ivs),
+                                                          function(x) sapply(ivs[[x]], function(y) y)
+      )), family = family)
+    }
+  }else{ #undirected
+    if(family == "gaussian"){
+      observedLm <- lm(unlist(lapply(dvs, function(x) x[lower.tri(x, diag = diag)])) ~
+                         Reduce(rbind,lapply(1:length(ivs),function(x) sapply(ivs[[x]], function(y) y[lower.tri(y, diag = diag)]))),
+      )
+    }else{# non-gaussian
+      observedLm <- glm(unlist(lapply(dvs, function(x) x[lower.tri(x, diag = diag)])) ~
+                          Reduce(rbind,lapply(1:length(ivs),function(x) sapply(ivs[[x]], function(y) y[lower.tri(y, diag = diag)]))),
+                        family = family)
+    }
     
     
   }
@@ -183,14 +193,25 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "iv", family = "gaussian",
     sampledEstimates <- data.frame()
     for(sampleNr in 1:samples){
       if(directed){
-        
-        sampledEstimates <- rbind(sampledEstimates, glm(unlist(lapply(dvs, function(x) sample(x))) ~ Reduce(rbind,lapply(1:length(ivs),
-                                                                                                                         function(x) sapply(ivs[[x]], function(y) y)
-        )), family = family)$coefficients)
-      }else{
-        sampledEstimates <- rbind(sampledEstimates, glm(unlist(lapply(dvs, function(x) sample(x[lower.tri(x, diag = diag)]))) ~ 
-                                                          Reduce(rbind,lapply(1:length(ivs), function(x) sapply(ivs[[x]], function(y) y[lower.tri(y, diag = diag)])
-                                                          )), family = family)$coefficients)
+        if(family=="gaussian"){
+          sampledEstimates <- rbind(sampledEstimates, lm(unlist(lapply(dvs, function(x) sample(x))) ~ Reduce(rbind,lapply(1:length(ivs),
+                                                                                                                          function(x) sapply(ivs[[x]], function(y) y)
+          )))$coefficients)
+        }else{#non-gaussian
+          sampledEstimates <- rbind(sampledEstimates, glm(unlist(lapply(dvs, function(x) sample(x))) ~ Reduce(rbind,lapply(1:length(ivs),
+                                                                                                                           function(x) sapply(ivs[[x]], function(y) y)
+          )), family = family)$coefficients)
+        }
+      }else{ # non-directed
+        if(family=="gaussian"){
+          sampledEstimates <- rbind(sampledEstimates, lm(unlist(lapply(dvs, function(x) sample(x[lower.tri(x, diag = diag)]))) ~ 
+                                                           Reduce(rbind,lapply(1:length(ivs), function(x) sapply(ivs[[x]], function(y) y[lower.tri(y, diag = diag)])
+                                                           )))$coefficients)
+        }else{#non-gaussian
+          sampledEstimates <- rbind(sampledEstimates, glm(unlist(lapply(dvs, function(x) sample(x[lower.tri(x, diag = diag)]))) ~ 
+                                                            Reduce(rbind,lapply(1:length(ivs), function(x) sapply(ivs[[x]], function(y) y[lower.tri(y, diag = diag)])
+                                                            )), family = family)$coefficients)
+        }
       }
       
       setTxtProgressBar(pb, sampleNr)
@@ -296,10 +317,17 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "iv", family = "gaussian",
           
         }
         
-        perm.fit <- glm(unlist(dvs) ~ 
-                          unlist(epsilon.perm.list)  + 
-                          Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
-                          )) -1, family = family)$coefficients # eq. 17
+        if(family == "gaussian"){
+          perm.fit <- lm(unlist(dvs) ~ 
+                           unlist(epsilon.perm.list)  + 
+                           Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
+                           )) -1)$coefficients # eq. 17
+        }else{#non-gaussian
+          perm.fit <- glm(unlist(dvs) ~ 
+                            unlist(epsilon.perm.list)  + 
+                            Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
+                            )) -1, family = family)$coefficients # eq. 17
+        }
         
         
         
@@ -307,11 +335,17 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "iv", family = "gaussian",
         sampledEpsilon[sampleNr, xIV] <- perm.fit[1]
         
         # compare sampledEpsilon with with epsilon!
-        
-        obs.fit <- glm(unlist(dvs) ~ 
-                         unlist(epsilon.list)  + 
-                         Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
-                         )) -1, family = family)$coefficients # eq. 17
+        if(family == "gaussian"){
+          obs.fit <- lm(unlist(dvs) ~ 
+                          unlist(epsilon.list)  + 
+                          Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
+                          )) -1)$coefficients # eq. 17
+        }else{#non-gaussian
+          obs.fit <- glm(unlist(dvs) ~ 
+                           unlist(epsilon.list)  + 
+                           Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
+                           )) -1, family = family)$coefficients # eq. 17
+        }
         observedEpsilons[xIV] <- obs.fit[1]
       }
       setTxtProgressBar(pb, sampleNr) # update progress bar
@@ -352,5 +386,3 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "iv", family = "gaussian",
   return(list(mode = c(mode, samples), plots = ecdf.plots,output = output, r.squared = r.squared))
   
 }
-
-
