@@ -116,6 +116,7 @@ QAP <- function(dv, iv1,  iv.names, mode = "yQAP" ,samples = 1000, diag = F, dir
 QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
                    iv.names = iv.names, mode = "yQAP" ,samples = 1000, diag = F, directed = T, 
                    cpu = 1, round.to = 5, logfilename = "QAP.log",
+                   verbose = T,
                    global.deltas = T, return.perms = F){
   
   ##testing
@@ -133,6 +134,7 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
   # logfilename = "QAP.log"
   
   if(!diag){ # get rid of diagonal values
+    if(verbose) cat("\n replace diagnoal values with NAs")
     for(DV in 1:length(dvs)){
       diag(dvs[[DV]]) <- NA
     }
@@ -164,7 +166,7 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
   
   
   # get the observed estimates
-  
+  if(verbose) cat("\n get the observed estimates")
   if(directed){ # directed
     
     if(family == "gaussian"){
@@ -216,6 +218,7 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
 
   ##### YQAP #######
   if(mode == "yQAP"){
+    if(verbose) cat("\n estimating permuted networks with mode yQAP \n")
     sampledEstimates <- data.frame()
     #for(sampleNr in 1:samples){
     sampledEstimates <- foreach(sampleNr=1:samples, .combine=rbind) %dopar% { # for loop using parallel processing
@@ -265,6 +268,7 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
   
   ##### Dekker semi partialing #######
   if(mode == "dspQAP"){
+    if(verbose) cat("\n estimating permuted networks with mode Dekker semi partialing (dspQAP) \n")
     sampledEpsilon <- data.frame()
     observedEpsilons <- c()
     
@@ -399,6 +403,8 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
 
   output[,"significance"] <- sapply(output$`p(1sided)`, stars)
   if(return.perms) return(list(sampledEstimates, observedEstimates))
-  return(list(mode = c(mode, samples), plots = ecdf.plots,output = output, r.squared = r.squared))
+  out <- list(mode = c(mode, samples), plots = ecdf.plots,output = output, r.squared = r.squared)
+  class(out) <- "netglm"
+  return(out)
   
 }

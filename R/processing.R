@@ -22,3 +22,5 @@ makeSameMatrix <- function(x, var){
   rownames(out)<- colnames(out) <- x$ID
   return(out)
 }
+
+
