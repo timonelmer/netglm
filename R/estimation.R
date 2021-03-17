@@ -1,6 +1,11 @@
 ##### netglm ######
 #### estimation ###
-
+stars <- function(p.value){
+  ifelse(p.value > 0.90 | p.value < 0.10,
+         ifelse(p.value > 0.95 | p.value < 0.05, 
+                ifelse(p.value > 0.99 | p.value < 0.01, 
+                       ifelse(p.value > 0.999 | p.value < 0.001, "***", "**"), "*"), "x"), "")
+}
 
 
 QAP <- function(dv, iv1,  iv.names, mode = "yQAP" ,samples = 1000, diag = F, directed = F){
@@ -106,11 +111,26 @@ QAP <- function(dv, iv1,  iv.names, mode = "yQAP" ,samples = 1000, diag = F, dir
 
 # mutligroup QAP
 
-QAP.MG <- function(dvs, ivs, iv.list.per = "iv", family = "gaussian",
+#' @param round.to round output to digits
+#' @example 
+QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
                    iv.names = iv.names, mode = "yQAP" ,samples = 1000, diag = F, directed = T, 
-                   global.deltas = T, ecdf.plot = F, return.perms = F){
+                   cpu = 1, round.to = 5, logfilename = "QAP.log",
+                   global.deltas = T, return.perms = F){
   
-  
+  ##testing
+  # iv.list.per = "group"
+  # diag = F
+  # directed = T
+  # family = "gaussian"
+  # cpu = 1
+  # round.to = 5
+  # global.deltas =T
+  # samples = 100
+  # return.perms =F
+  # #mode = "dspQAP"
+  # mode = "yQAP"
+  # logfilename = "QAP.log"
   
   if(!diag){ # get rid of diagonal values
     for(DV in 1:length(dvs)){
@@ -144,7 +164,6 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "iv", family = "gaussian",
   
   
   # get the observed estimates
-  pb <- txtProgressBar(min = 0, max = samples, style = 3) # set progress bar
   
   if(directed){ # directed
     
@@ -188,34 +207,43 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "iv", family = "gaussian",
   if(family == "binomial") r.squared <- DescTools::PseudoR2(observedLm)
   
   
+  #if(cpu == 1) pb <- txtProgressBar(min = 0, max = samples, style = 3) # set progress bar
+  require(foreach)
+  require(doParallel)
+  cl <- makeCluster(cpu)
+  registerDoParallel(cl)
+  
+
   ##### YQAP #######
   if(mode == "yQAP"){
     sampledEstimates <- data.frame()
-    for(sampleNr in 1:samples){
+    #for(sampleNr in 1:samples){
+    sampledEstimates <- foreach(sampleNr=1:samples, .combine=rbind) %dopar% { # for loop using parallel processing
       if(directed){
         if(family=="gaussian"){
-          sampledEstimates <- rbind(sampledEstimates, lm(unlist(lapply(dvs, function(x) sample(x))) ~ Reduce(rbind,lapply(1:length(ivs),
-                                                                                                                          function(x) sapply(ivs[[x]], function(y) y)
-          )))$coefficients)
+          tmp <- lm(unlist(lapply(dvs, function(x) sample(x))) ~ Reduce(rbind,lapply(1:length(ivs),function(x) sapply(ivs[[x]], function(y) y)
+          )))$coefficients
         }else{#non-gaussian
-          sampledEstimates <- rbind(sampledEstimates, glm(unlist(lapply(dvs, function(x) sample(x))) ~ Reduce(rbind,lapply(1:length(ivs),
-                                                                                                                           function(x) sapply(ivs[[x]], function(y) y)
-          )), family = family)$coefficients)
+          tmp <- glm(unlist(lapply(dvs, function(x) sample(x))) ~ Reduce(rbind,lapply(1:length(ivs),function(x) sapply(ivs[[x]], function(y) y)
+          )), family = family)$coefficients
         }
       }else{ # non-directed
         if(family=="gaussian"){
-          sampledEstimates <- rbind(sampledEstimates, lm(unlist(lapply(dvs, function(x) sample(x[lower.tri(x, diag = diag)]))) ~ 
+          tmp <- lm(unlist(lapply(dvs, function(x) sample(x[lower.tri(x, diag = diag)]))) ~ 
                                                            Reduce(rbind,lapply(1:length(ivs), function(x) sapply(ivs[[x]], function(y) y[lower.tri(y, diag = diag)])
-                                                           )))$coefficients)
+                                                           )))$coefficients
         }else{#non-gaussian
-          sampledEstimates <- rbind(sampledEstimates, glm(unlist(lapply(dvs, function(x) sample(x[lower.tri(x, diag = diag)]))) ~ 
+          tmp <- glm(unlist(lapply(dvs, function(x) sample(x[lower.tri(x, diag = diag)]))) ~ 
                                                             Reduce(rbind,lapply(1:length(ivs), function(x) sapply(ivs[[x]], function(y) y[lower.tri(y, diag = diag)])
-                                                            )), family = family)$coefficients)
+                                                            )), family = family)$coefficients
         }
       }
-      
-      setTxtProgressBar(pb, sampleNr)
+      print(tmp)
+      #cat(paste0("\r", sampleNr," out of ", samples))
+      #if(cpu == 1) setTxtProgressBar(pb, sampleNr) # update progress bar
+      #write.table(paste0(sampleNr," out of ", samples),file = logfilename)
     }
+    stopCluster(cl)
     
     ecdf.plots <- list()
     for(est in 1:length(observedEstimates)){
@@ -229,14 +257,7 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "iv", family = "gaussian",
       output[est,"2.5th P"] <- quantile(sampledEstimates[,est],probs=c(.025))
       output[est,"97.5th P"] <- quantile(sampledEstimates[,est],probs=c(.975))
       
-      
-      if(ecdf.plot){
-        
-        require(ggplot2)
-        
-        ecdf.plots[[est]] <- plot(ecdf(sampledEstimates[,est])(observedEstimates[est]))
-        
-      }
+
     }
     
   }
@@ -257,7 +278,9 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "iv", family = "gaussian",
     }
     
     
-    for(sampleNr in 1:samples){
+    #for(sampleNr in 1:samples){
+    Epsilon.list <- foreach(sampleNr=1:samples, .combine=rbind,
+                              .multicombine = T, .init = list()) %dopar% { # for loop using parallel processing
       for(xIV in 1:(length(ivs[[1]])+1)){ # for each independent variable
         
         # storage places
@@ -333,8 +356,8 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "iv", family = "gaussian",
         
         
         sampledEpsilon[sampleNr, xIV] <- perm.fit[1]
-        
-        # compare sampledEpsilon with with epsilon!
+        if(sampleNr %in% 1:2){ # only compute the observedEpsilons once (and compare with second sample for safety)
+        # compare sampledEpsilon with epsilon!
         if(family == "gaussian"){
           obs.fit <- lm(unlist(dvs) ~ 
                           unlist(epsilon.list)  + 
@@ -347,40 +370,33 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "iv", family = "gaussian",
                            )) -1, family = family)$coefficients # eq. 17
         }
         observedEpsilons[xIV] <- obs.fit[1]
+        }
       }
-      setTxtProgressBar(pb, sampleNr) # update progress bar
+      print(list(sampledEpsilon[sampleNr,],observedEpsilons))
+      #setTxtProgressBar(pb, sampleNr) # update progress bar
+      #write.table(paste0(sampleNr," out of ", samples),file = logfilename)
       
     }
+    stopCluster(cl)
+    
+    sampledEpsilon <- data.frame(matrix(unlist(Epsilon.list[1:samples]), nrow=length(Epsilon.list[1:samples]), byrow=TRUE))
+    if(!all(Epsilon.list[samples+1][[1]] == Epsilon.list[samples+2][[1]])) stop("observed Epsilons are not identical per sample")
+    observedEpsilons <- Epsilon.list[samples+1][[1]]
     
     ecdf.plots <- list()
     for(est in 1:length(observedEpsilons)){
       sampledEpsilon[,est] <= observedEpsilons[est]
       
       output[est,"p(1sided)"] <- ecdf(sampledEpsilon[,est])(observedEpsilons[est])
-      #output[est,"p(Percentile,1sided)"] <- (sum(sampledEpsilon[,est] <= observedEpsilons[est])/nrow(sampledEpsilon))
-      
-      if(ecdf.plot){
-        
-        require(ggplot2)
-        # g <- qplot(sampledEpsilon[,est], bins = 100) + 
-        #   geom_vline(xintercept = observedEpsilons[est]) + 
-        #   annotate("text", label = paste0(round(output[est,"p(1sided)"],3),"%"), x = observedEpsilons[est], y = 50) + xlab(iv.names[est])
-        # ecdf.plots[[est]] <- g
-        ecdf.plots[[est]] <- plot(ecdf(sampledEpsilon[,est])(observedEpsilons[est]))
-        #rm(g)
-      }
+      #output[est,"p(Percentile,1sided)"] <- (sum(sampledEpsilon[,est] <= observedEpsilons[est])/nrow(sampledEpsilon))    }
+      output[est,"abs(p)"] <- output[est,"p(1sided)"] 
+      output[est,"abs(p)"][output[est,"p(1sided)"] > 0.5] <- 1-output[est,"abs(p)"][output[est,"p(1sided)"] > 0.5]
     }
   } # end of dspQAP
   
+  output <- round(output,round.to)
   
-  output <- round(output,5)
-  
-  stars <- function(p.value){
-    ifelse(p.value > 0.90 | p.value < 0.10,
-           ifelse(p.value > 0.95 | p.value < 0.05, 
-                  ifelse(p.value > 0.99 | p.value < 0.01, 
-                         ifelse(p.value > 0.999 | p.value < 0.001, "***", "**"), "*"), "x"), "")
-  }
+
   output[,"significance"] <- sapply(output$`p(1sided)`, stars)
   if(return.perms) return(list(sampledEstimates, observedEstimates))
   return(list(mode = c(mode, samples), plots = ecdf.plots,output = output, r.squared = r.squared))
