@@ -1,16 +1,10 @@
 Package: netglm
 Type: Package
-Title: netglm - general linear models for network data
+Title: netglm - generalized linear models for network data
 Version: 0.1.0
 Author: Timon Elmer
 Maintainer: Timon Elmer <timon.elmer@gmail.com>
-Description: General linear regression framework for network data based on 
-  the Quadratic Assignment Proccedure (Krackhardt, 1988). This package allows to investigate 
-  associations between characteristics of dyads in networks (e.g., the level of homophily between two actors) 
-  and a binary or continuous tie variable (e.g., friendship, amount of time spent together).
-  One unique feature of this package is that it allows to estimate multi-group QAP models, 
-  where multiple networks are analyzed simultaneously (e.g., networks of multiple classrooms). Furthermore, 
-  paralell processing is implemented.
+Description: Estimates generalized linear models for network data based on the Quadratic Assignment Proccedure (Krackhardt, 1988). This package allows to investigate associations between characteristics of dyads in networks (e.g., the level of homophily between two actors) and a binary or continuous tie variable (e.g., friendship, amount of time spent together). One unique feature of this package is that it allows to estimate multi-group QAP models, where multiple networks are analyzed simultaneously (e.g., networks of multiple classrooms). Furthermore, paralell processing is implemented.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
