@@ -8,6 +8,39 @@ stars <- function(p.value){
 }
 
 
+#' MRQAP for unnested data
+#'
+#' Estimates a MRQAP model 
+#'
+#' @param dv
+#' @param iv1
+#' @param family
+#' @param iv.names 
+#' @param mode 
+#' @param samples 
+#' @param diag 
+#' @param directed 
+#' @param round.to
+#' @param cpu
+#' @param logfilename 
+#' @param verbose 
+#' @param global.deltas 
+#' @param return.perms 
+#'
+#' @examples 
+
+#' @seealso \code{\link{QAP.MG}}
+#' 
+#' @references 
+#' Dekker, D.; Krackhardt, D.; Snijders, T.A.B.  (2007).  \dQuote{Sensitivity of MRQAP Tests to Collinearity and Autocorrelation Conditions.}  \emph{Psychometrika}, 72(4), 563-581.
+#' 
+#' Dekker, D.; Krackhardt, D.; Snijders, T.A.B.  (2003).  \dQuote{Mulicollinearity Robust QAP for Multiple Regression.}  CASOS Working Paper, Carnegie Mellon University.
+#' 
+#' Krackhardt, D.  (1987).  \dQuote{QAP Partialling as a Test of Spuriousness.} \emph{Social Networks}, 9 171-186.
+#' 
+#' Krackhardt, D.  (1988).  \dQuote{Predicting With Networks: Nonparametric Multiple Regression Analyses of Dyadic Data.}  \emph{Social Networks}, 10, 359-382.
+#'
+#' @export
 QAP <- function(dv, iv1,  iv.names, mode = "yQAP" ,samples = 1000, diag = F, directed = F){
   pb <- txtProgressBar(min = 0, max = samples, style = 3) # set progress bar
   
@@ -111,8 +144,40 @@ QAP <- function(dv, iv1,  iv.names, mode = "yQAP" ,samples = 1000, diag = F, dir
 
 # mutligroup QAP
 
-#' @param round.to round output to digits
-#' @example 
+#' Multigroup MRQAP
+#'
+#' Estimates a MRQAP model taking the multilevel/grouped nature of the into account.
+#'
+#' @param dvs
+#' @param ivs
+#' @param iv.list.per
+#' @param family
+#' @param iv.names 
+#' @param mode 
+#' @param samples 
+#' @param diag 
+#' @param directed 
+#' @param round.to
+#' @param cpu
+#' @param logfilename 
+#' @param verbose 
+#' @param global.deltas 
+#' @param return.perms 
+#'
+#' @examples 
+
+#' @seealso \code{\link{QAP}}
+#'
+#' @references 
+#' Dekker, D.; Krackhardt, D.; Snijders, T.A.B.  (2007).  \dQuote{Sensitivity of MRQAP Tests to Collinearity and Autocorrelation Conditions.}  \emph{Psychometrika}, 72(4), 563-581.
+#' 
+#' Dekker, D.; Krackhardt, D.; Snijders, T.A.B.  (2003).  \dQuote{Mulicollinearity Robust QAP for Multiple Regression.}  CASOS Working Paper, Carnegie Mellon University.
+#' 
+#' Krackhardt, D.  (1987).  \dQuote{QAP Partialling as a Test of Spuriousness.} \emph{Social Networks}, 9 171-186.
+#' 
+#' Krackhardt, D.  (1988).  \dQuote{Predicting With Networks: Nonparametric Multiple Regression Analyses of Dyadic Data.}  \emph{Social Networks}, 10, 359-382.
+#'
+#' @export
 QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
                    iv.names = iv.names, mode = "yQAP" ,samples = 1000, diag = F, directed = T, 
                    cpu = 1, round.to = 5, logfilename = "QAP.log",
