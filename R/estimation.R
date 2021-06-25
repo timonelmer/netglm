@@ -19,20 +19,34 @@ stars <- function(p.value){
 #' @param dv a matrix with n * m dimensions and cells indicating the presence of a tie (1 = tie, 0 = no tie for binary variables) 
 #'  or the weight of a tie (for continous tie variables) charcterizing the dependent variable
 #' @param iv1 a list of matrices with n * m dimensions characterizing the independent variables
-#' @param family 
-#' @param iv.names 
-#' @param mode 
-#' @param samples 
-#' @param diag 
-#' @param directed 
-#' @param round.to
-#' @param cpu
-#' @param logfilename 
-#' @param verbose 
-#' @param global.deltas 
-#' @param return.perms 
+#' @param iv.list.per lists in the ivs argument are should be nested by group and independent matrices, if this is not the case (grouped by independent matrices and then groups)
+#' the argument iv.list.per = "iv" can be used to restructure the data.
+#' @param family family of the generalized linear model. default is "gaussian" for continuous dependent varaibles. F
+#' or binday dependent variables "binomial" is advised.
+#' @param iv.names names of the independent variables for the output object
+#' @param mode permutation method to be applied. default is "yQAP" for permuting the Y / dv
+#'  variables."dspQAP" applies Dekker's semi partialing method (Dekker, Krackhard, & Snijders, 2007) 
+#' @param samples  number of permutations, default is 1000.
+#' @param diag  boolean for using the diagonal values of matrices in the estimation. default is FALSE
+#' @param directed "directed" if the dependent network is directed (ties from A to B and B to A are possible), 
+#' "undirected" if the dependent network is undirected (ties from A to B are identical to B to A). Default is "directed".
+#' @param round.to numeric, numer of digits in output table
+#' @param cpu number of cpu's to be used for estimation, default is 1
+#' @param logfilename name of log file printing intermediate reports during the estimation procedure.
+#' @param verbose reports of what is happening under the hood during the call of the function, default is TRUE
+#' @param global.deltas during "dspQAP" estimation, should global or local delta values be used. default is TRUE
+#' @param return.perms should permuted networks be part of the output? default is FALSE
 #'
 #' @examples 
+#' # create test data #
+#' inspired by the example funciton in sna::netlm
+#' ivnet1<-sna::rgraph(20,4)
+#'
+#' dv1<-ivnet1[1,,]+4*ivnet1[2,,]+2*ivnet1[3,,]   # Note that the fourth graph is unrelated
+#' dv1 <- dv1 + rnorm(400,mean = 1, sd = 1)
+
+#' iv1 <- list(ivnet1[1,,],ivnet1[2,,],ivnet1[3,,], ivnet1[4,,])
+#'  QAP.MG(list(dv1), list(iv1), iv.names = c("intercept",paste0("IV",1:4)), samples = 3000)
 
 #' @seealso \code{\link{QAP.MG}}
 #' 
@@ -168,15 +182,31 @@ QAP <- function(dv, iv1,  iv.names, mode = "yQAP" ,samples = 1000, diag = F, dir
 #' @param diag  boolean for using the diagonal values of matrices in the estimation. default is FALSE
 #' @param directed "directed" if the dependent network is directed (ties from A to B and B to A are possible), 
 #' "undirected" if the dependent network is undirected (ties from A to B are identical to B to A). Default is "directed".
-#' @param round.to
-#' @param cpu
-#' @param logfilename 
-#' @param verbose 
-#' @param global.deltas 
-#' @param return.perms 
+#' @param round.to numeric, numer of digits in output table
+#' @param cpu number of cpu's to be used for estimation, default is 1
+#' @param logfilename name of log file printing intermediate reports during the estimation procedure.
+#' @param verbose reports of what is happening under the hood during the call of the function, default is TRUE
+#' @param global.deltas during "dspQAP" estimation, should global or local delta values be used. default is TRUE
+#' @param return.perms should permuted networks be part of the output? default is FALSE
 #'
 #' @examples 
+#' # create test data #
+#' inspired by the example funciton in sna::netlm
+#' ivnet1<-sna::rgraph(20,4)
+#' ivnet2<-sna::rgraph(20,4)
+#'
+#' dv1<-ivnet1[1,,]+4*ivnet1[2,,]+2*ivnet1[3,,]   # Note that the fourth graph is unrelated
+#' dv1 <- dv1 + rnorm(400,mean = 1, sd = 1)
+#' 
+#' dv2 <- 2*ivnet2[1,,]+3*ivnet2[2,,]+3*ivnet2[3,,]
+#' dv2 <- dv2 + rnorm(400,mean = 1, sd = 1)
+#' dvs <- list(dv1, dv2)
 
+#' iv1 <- list(ivnet1[1,,],ivnet1[2,,],ivnet1[3,,], ivnet1[4,,])
+#' iv2 <- list(ivnet2[1,,],ivnet2[2,,],ivnet2[3,,], ivnet2[4,,])
+#' ivs <- list(iv1, iv2)
+#' iv.names = c("intercept",paste0("IV",1:4))
+#'  QAP.MG(dvs, ivs, iv.names = c("intercept",paste0("IV",1:4)), samples = 3000)
 #' @seealso \code{\link{QAP}}
 #'
 #' @references 
