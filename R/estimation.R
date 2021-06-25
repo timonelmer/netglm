@@ -10,11 +10,16 @@ stars <- function(p.value){
 
 #' MRQAP for unnested data
 #'
-#' Estimates a MRQAP model 
+#' Estimates a Multiple Regression Quadratic Assignment Proccedure model 
+#' (MRQAP; Krackhardt, 1988). MRQAPs allow investigating associations between
+#'  characteristics of dyads in networks (e.g., the level of homophily 
+#'  between two actors) and a binary or continuous
+#'   tie variable (e.g., friendship, amount of time spent together). 
 #'
-#' @param dv
-#' @param iv1
-#' @param family
+#' @param dv a matrix with n * m dimensions and cells indicating the presence of a tie (1 = tie, 0 = no tie for binary variables) 
+#'  or the weight of a tie (for continous tie variables) charcterizing the dependent variable
+#' @param iv1 a list of matrices with n * m dimensions characterizing the independent variables
+#' @param family 
 #' @param iv.names 
 #' @param mode 
 #' @param samples 
@@ -148,15 +153,21 @@ QAP <- function(dv, iv1,  iv.names, mode = "yQAP" ,samples = 1000, diag = F, dir
 #' An application and detailed description of the multigroup extension 
 #' of MRQAP can be found in Elmer and Stadtfeld (2020).
 #'
-#' @param dvs
-#' @param ivs
-#' @param iv.list.per
-#' @param family
-#' @param iv.names 
-#' @param mode 
-#' @param samples 
-#' @param diag 
-#' @param directed 
+#' @param dvs a list of matrices where each matrix represents the dependent network of one group. Cells of the matrix indicating the presence of a tie (1 = tie, 0 = no tie for binary variables) 
+#'  or the weight of a tie (for continuous tie variables) characterizing the dependent networks
+#' @param ivs a list of lists with where each sets of independent matrices are grouped by group and then independent variables. 
+#' If the list is organized per independent network the argument iv.list.per = "iv" can be used to restructure the data.
+#' @param iv.list.per lists in the ivs argument are should be nested by group and independent matrices, if this is not the case (grouped by independent matrices and then groups)
+#' the argument iv.list.per = "iv" can be used to restructure the data.
+#' @param family family of the generalized linear model. default is "gaussian" for continuous dependent varaibles. F
+#' or binday dependent variables "binomial" is advised.
+#' @param iv.names names of the independent variables for the output object
+#' @param mode permutation method to be applied. default is "yQAP" for permuting the Y / dv
+#'  variables."dspQAP" applies Dekker's semi partialing method (Dekker, Krackhard, & Snijders, 2007) 
+#' @param samples  number of permutations, default is 1000.
+#' @param diag  boolean for using the diagonal values of matrices in the estimation. default is FALSE
+#' @param directed "directed" if the dependent network is directed (ties from A to B and B to A are possible), 
+#' "undirected" if the dependent network is undirected (ties from A to B are identical to B to A). Default is "directed".
 #' @param round.to
 #' @param cpu
 #' @param logfilename 
@@ -198,6 +209,9 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
   # #mode = "dspQAP"
   # mode = "yQAP"
   # logfilename = "QAP.log"
+  
+  # TODO: automatic check for directedness of DV matrix
+  # TODO: check dimensions of IVs and DVs
   
   if(!diag){ # get rid of diagonal values
     if(verbose) cat("\n replace diagnoal values with NAs")
