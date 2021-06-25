@@ -34,8 +34,6 @@ stars <- function(p.value){
 #' @references 
 #' Dekker, D.; Krackhardt, D.; Snijders, T.A.B.  (2007).  \dQuote{Sensitivity of MRQAP Tests to Collinearity and Autocorrelation Conditions.}  \emph{Psychometrika}, 72(4), 563-581.
 #' 
-#' Dekker, D.; Krackhardt, D.; Snijders, T.A.B.  (2003).  \dQuote{Mulicollinearity Robust QAP for Multiple Regression.}  CASOS Working Paper, Carnegie Mellon University.
-#' 
 #' Krackhardt, D.  (1987).  \dQuote{QAP Partialling as a Test of Spuriousness.} \emph{Social Networks}, 9 171-186.
 #' 
 #' Krackhardt, D.  (1988).  \dQuote{Predicting With Networks: Nonparametric Multiple Regression Analyses of Dyadic Data.}  \emph{Social Networks}, 10, 359-382.
@@ -146,7 +144,9 @@ QAP <- function(dv, iv1,  iv.names, mode = "yQAP" ,samples = 1000, diag = F, dir
 
 #' Multigroup MRQAP
 #'
-#' Estimates a MRQAP model taking the multilevel/grouped nature of the into account.
+#' Estimates a MRQAP model taking the multilevel/grouped nature of the into account. 
+#' An application and detailed description of the multigroup extension 
+#' of MRQAP can be found in Elmer and Stadtfeld (2020).
 #'
 #' @param dvs
 #' @param ivs
@@ -169,13 +169,14 @@ QAP <- function(dv, iv1,  iv.names, mode = "yQAP" ,samples = 1000, diag = F, dir
 #' @seealso \code{\link{QAP}}
 #'
 #' @references 
-#' Dekker, D.; Krackhardt, D.; Snijders, T.A.B.  (2007).  \dQuote{Sensitivity of MRQAP Tests to Collinearity and Autocorrelation Conditions.}  \emph{Psychometrika}, 72(4), 563-581.
+#' Dekker, D., Krackhardt, D., & Snijders, T.A.B.  (2007).  \dQuote{Sensitivity of MRQAP Tests to Collinearity and Autocorrelation Conditions.}  \emph{Psychometrika}, 72(4), 563-581.
 #' 
-#' Dekker, D.; Krackhardt, D.; Snijders, T.A.B.  (2003).  \dQuote{Mulicollinearity Robust QAP for Multiple Regression.}  CASOS Working Paper, Carnegie Mellon University.
+#' Elmer, T., & Stadtfeld, C. (2020). \dQuote{Depressive symptoms are associated with social isolation in face-to-face interaction networks}. \emph{Scientific Reports}, 1–12. https://doi.org/10.1038/s41598-020-58297-9
 #' 
 #' Krackhardt, D.  (1987).  \dQuote{QAP Partialling as a Test of Spuriousness.} \emph{Social Networks}, 9 171-186.
 #' 
 #' Krackhardt, D.  (1988).  \dQuote{Predicting With Networks: Nonparametric Multiple Regression Analyses of Dyadic Data.}  \emph{Social Networks}, 10, 359-382.
+#'
 #'
 #' @export
 QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",

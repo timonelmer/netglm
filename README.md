@@ -3,7 +3,7 @@
 ![GitHub Release Date](https://img.shields.io/github/release-date/timonelmer/netglm) -->
 ![GitHub issues](https://img.shields.io/github/issues-raw/timonelmer/netglm)
 ![GitHub All Releases](https://img.shields.io/github/downloads/timonelmer/netglm/total)
-<!-- [![Codecov test coverage](https://codecov.io/gh/timonelmer/dnetglm/branch/master/graph/badge.svg)](https://codecov.io/gh/timonelmer/dena?branch=master) -->
+<!-- [![Codecov test coverage](https://codecov.io/gh/timonelmer/dnetglm/branch/master/graph/badge.svg)](https://codecov.io/gh/timonelmer/netglm?branch=master) -->
 <!-- badges: end -->
 
 # netglm
