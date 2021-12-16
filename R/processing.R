@@ -23,4 +23,3 @@ makeSameMatrix <- function(x, var){
   return(out)
 }
 
-

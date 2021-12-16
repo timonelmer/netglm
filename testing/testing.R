@@ -1,6 +1,7 @@
 ### testing the QAP.MG function ####
 rm(list = ls())
 library(sna)
+library(netglm)
 # create test data #
 # inspired by the example funciton in sna::netlm
 ivnet1<-rgraph(20,4)
