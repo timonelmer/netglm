@@ -224,9 +224,9 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
                    iv.names = iv.names, mode = "yQAP" ,samples = 1000, diag = F, directed = T, 
                    cpu = 1, round.to = 5, logfilename = "QAP.log",
                    verbose = T,
-                   global.deltas = T, return.perms = F){
+                   global.deltas = F){
   
-  ##testing
+  # #testing
   # iv.list.per = "group"
   # diag = F
   # directed = T
@@ -239,6 +239,7 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
   # #mode = "dspQAP"
   # mode = "yQAP"
   # logfilename = "QAP.log"
+  # verbose = T
   
   # TODO: automatic check for directedness of DV matrix
   # TODO: check dimensions of IVs and DVs
@@ -325,32 +326,36 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
   cl <- makeCluster(cpu)
   registerDoParallel(cl)
   
-
+  
   ##### YQAP #######
+  
+  if(!directed) dvs <- lapply(dvs, function(x) x[lower.tri(x, diag = diag)] <- NA)
+  
   if(mode == "yQAP"){
     if(verbose) cat("\n estimating permuted networks with mode yQAP \n")
     sampledEstimates <- data.frame()
     #for(sampleNr in 1:samples){
     sampledEstimates <- foreach(sampleNr=1:samples, .combine=rbind) %dopar% { # for loop using parallel processing
-      if(directed){
-        if(family=="gaussian"){
-          tmp <- lm(unlist(lapply(dvs, function(x) sample(x))) ~ Reduce(rbind,lapply(1:length(ivs),function(x) sapply(ivs[[x]], function(y) y)
-          )))$coefficients
-        }else{#non-gaussian
-          tmp <- glm(unlist(lapply(dvs, function(x) sample(x))) ~ Reduce(rbind,lapply(1:length(ivs),function(x) sapply(ivs[[x]], function(y) y)
-          )), family = family)$coefficients
-        }
-      }else{ # non-directed
-        if(family=="gaussian"){
-          tmp <- lm(unlist(lapply(dvs, function(x) sample(x[lower.tri(x, diag = diag)]))) ~ 
-                                                           Reduce(rbind,lapply(1:length(ivs), function(x) sapply(ivs[[x]], function(y) y[lower.tri(y, diag = diag)])
-                                                           )))$coefficients
-        }else{#non-gaussian
-          tmp <- glm(unlist(lapply(dvs, function(x) sample(x[lower.tri(x, diag = diag)]))) ~ 
-                                                            Reduce(rbind,lapply(1:length(ivs), function(x) sapply(ivs[[x]], function(y) y[lower.tri(y, diag = diag)])
-                                                            )), family = family)$coefficients
-        }
+      if(family=="gaussian"){
+        tmp <- lm(unlist(lapply(dvs, function(x)
+        {
+          s <- sample(1:ncol(x))
+          return(c(x[s, s]))
+        })) ~
+          Reduce(rbind, lapply(1:length(ivs), function(x)
+            sapply(ivs[[x]], function(y)
+              y))))$coefficients
+      }else{#non-gaussian
+        tmp <- glm(unlist(lapply(dvs, function(x)
+        {
+          s <- sample(1:ncol(x))
+          return(c(x[s, s]))
+        })) ~
+          Reduce(rbind, lapply(1:length(ivs), function(x)
+            sapply(ivs[[x]], function(y)
+              y))), family = family)$coefficients
       }
+      
       print(tmp)
       #cat(paste0("\r", sampleNr," out of ", samples))
       #if(cpu == 1) setTxtProgressBar(pb, sampleNr) # update progress bar
@@ -370,7 +375,7 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
       output[est,"2.5th P"] <- quantile(sampledEstimates[,est],probs=c(.025))
       output[est,"97.5th P"] <- quantile(sampledEstimates[,est],probs=c(.975))
       
-
+      
     }
     
   }
@@ -394,103 +399,106 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
     
     #for(sampleNr in 1:samples){
     Epsilon.list <- foreach(sampleNr=1:samples, .combine=rbind,
-                              .multicombine = T, .init = list()) %dopar% { # for loop using parallel processing
-      for(xIV in 1:(length(ivs[[1]])+1)){ # for each independent variable
-        
-        # storage places
-        epsilon.perm.list <- list() # object to store the permuted epsilon matrices
-        epsilon.list <- list() # object to store the observed epsilon matrices
-        Z.m.list <- list() # object to store all the list of Z matrices
-        
-        for(set in 1:length(ivs)){
-          # change variable names for easier comparison with the equations in Dekker et al. (2007)
-          Y.m <- dvs[[set]]
-          X.m <- ivs.new[[set]][[xIV]]
-          Z.m <- ivs.new[[set]][-xIV]
-          
-          if(!directed){
-            Y.m[upper.tri(Y.m, diag = !diag)] <- NA
-            X.m[upper.tri(X.m, diag = !diag)] <- NA
-            for(Zi in 1:length(Z.m)){
-              Z.m[[Zi]][upper.tri(Z.m[[Zi]], diag = !diag)] <- NA
-            }
-          }
-          
-          
-          if(global.deltas){ # default
-            #global deltas
-            X.m.global <- list()
-            Z.m.global <- list()
-            for(obs in 1:length(dvs)){
-              X.m.global[[obs]] <- ivs.new[[obs]][[xIV]]
-              Z.m.global[[obs]] <- ivs.new[[obs]][-xIV]
-            }
-            
-            deltas.m <- lm(unlist(X.m.global) ~ Reduce(rbind,lapply(1:length(Z.m.global),
-                                                                    function(x) sapply(Z.m.global[[x]], function(y) y))) -1)$coefficients # get the deltas (eq. 16 in paper)
-            
-            
-            
-          }else{
-            #local deltas
-            deltas.m <- lm(as.numeric(X.m) ~ sapply(Z.m,function(x) x) -1)$coefficients # get the deltas (eq. 16 in paper)
-            if(family != "gaussian") stop("to implement for non gaussian")
-          }
-          
-          epsilon.m <- X.m - Reduce("+",lapply(1:length(Z.m), function(x) Z.m[[x]] * deltas.m[x])) # eq. 15
-          
-          if(!directed){
-            epsilon.m[upper.tri(epsilon.m)] <- t(epsilon.m)[upper.tri(epsilon.m)]
-          }
-          
-          # permutation
-          require(sna)
-          epsilon.m.perm <- rmperm(epsilon.m)
-          epsilon.m.perm[upper.tri(epsilon.m.perm, diag = !diag)] <- NA
-          epsilon.perm.list[[set]] <- epsilon.m.perm 
-          epsilon.m[upper.tri(epsilon.m, diag = !diag)] <- NA
-          epsilon.list[[set]] <- epsilon.m
-          Z.m.list[[set]] <- Z.m
-          
-        }
-        
-        if(family == "gaussian"){
-          perm.fit <- lm(unlist(dvs) ~ 
-                           unlist(epsilon.perm.list)  + 
-                           Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
-                           )) -1)$coefficients # eq. 17
-        }else{#non-gaussian
-          perm.fit <- glm(unlist(dvs) ~ 
-                            unlist(epsilon.perm.list)  + 
-                            Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
-                            )) -1, family = family)$coefficients # eq. 17
-        }
-        
-        
-        
-        
-        sampledEpsilon[sampleNr, xIV] <- perm.fit[1]
-        if(sampleNr %in% 1:2){ # only compute the observedEpsilons once (and compare with second sample for safety)
-        # compare sampledEpsilon with epsilon!
-        if(family == "gaussian"){
-          obs.fit <- lm(unlist(dvs) ~ 
-                          unlist(epsilon.list)  + 
-                          Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
-                          )) -1)$coefficients # eq. 17
-        }else{#non-gaussian
-          obs.fit <- glm(unlist(dvs) ~ 
-                           unlist(epsilon.list)  + 
-                           Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
-                           )) -1, family = family)$coefficients # eq. 17
-        }
-        observedEpsilons[xIV] <- obs.fit[1]
-        }
-      }
-      print(list(sampledEpsilon[sampleNr,],observedEpsilons))
-      #setTxtProgressBar(pb, sampleNr) # update progress bar
-      #write.table(paste0(sampleNr," out of ", samples),file = logfilename)
-      
-    }
+                            .multicombine = T, .init = list()) %dopar% { # for loop using parallel processing
+                              for(xIV in 1:(length(ivs[[1]])+1)){ # for each independent variable
+                                
+                                # storage places
+                                epsilon.perm.list <- list() # object to store the permuted epsilon matrices
+                                epsilon.list <- list() # object to store the observed epsilon matrices
+                                Z.m.list <- list() # object to store all the list of Z matrices
+                                
+                                for(set in 1:length(ivs)){
+                                  # change variable names for easier comparison with the equations in Dekker et al. (2007)
+                                  Y.m <- dvs[[set]]
+                                  X.m <- ivs.new[[set]][[xIV]]
+                                  Z.m <- ivs.new[[set]][-xIV]
+                                  
+                                  if(!directed){
+                                    Y.m[upper.tri(Y.m, diag = !diag)] <- NA
+                                    X.m[upper.tri(X.m, diag = !diag)] <- NA
+                                    for(Zi in 1:length(Z.m)){
+                                      Z.m[[Zi]][upper.tri(Z.m[[Zi]], diag = !diag)] <- NA
+                                    }
+                                  }
+                                  
+                                  
+                                  if(global.deltas){ # default
+                                    # TODO: ask Tom. If in eq. 16 the deltas (associations between Z and X) must 
+                                    # be estimate within each group (I think so, thus global.deltas = F) or for all groups.
+                                    
+                                    #global deltas
+                                    X.m.global <- list()
+                                    Z.m.global <- list()
+                                    for(obs in 1:length(dvs)){
+                                      X.m.global[[obs]] <- ivs.new[[obs]][[xIV]]
+                                      Z.m.global[[obs]] <- ivs.new[[obs]][-xIV]
+                                    }
+                                    
+                                    deltas.m <- lm(unlist(X.m.global) ~ Reduce(rbind,lapply(1:length(Z.m.global),
+                                                                                            function(x) sapply(Z.m.global[[x]], function(y) y))) -1)$coefficients # get the deltas (eq. 16 in paper)
+                                    
+                                    
+                                    if(family != "gaussian") stop("to implement for non gaussian")
+                                  }else{
+                                    #local deltas
+                                    deltas.m <- lm(as.numeric(X.m) ~ sapply(Z.m,function(x) x) -1)$coefficients # get the deltas (eq. 16 in paper)
+                                    if(family != "gaussian") stop("to implement for non gaussian")
+                                  }
+                                  
+                                  epsilon.m <- X.m - Reduce("+",lapply(1:length(Z.m), function(x) Z.m[[x]] * deltas.m[x])) # eq. 15
+                                  
+                                  if(!directed){
+                                    epsilon.m[upper.tri(epsilon.m)] <- t(epsilon.m)[upper.tri(epsilon.m)]
+                                  }
+                                  
+                                  # permutation
+                                  require(sna)
+                                  epsilon.m.perm <- rmperm(epsilon.m)
+                                  epsilon.m.perm[upper.tri(epsilon.m.perm, diag = !diag)] <- NA
+                                  epsilon.perm.list[[set]] <- epsilon.m.perm 
+                                  epsilon.m[upper.tri(epsilon.m, diag = !diag)] <- NA
+                                  epsilon.list[[set]] <- epsilon.m
+                                  Z.m.list[[set]] <- Z.m
+                                  
+                                }
+                                
+                                if(family == "gaussian"){
+                                  perm.fit <- lm(unlist(dvs) ~ 
+                                                   unlist(epsilon.perm.list)  + 
+                                                   Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
+                                                   )) -1)$coefficients # eq. 17
+                                }else{#non-gaussian
+                                  perm.fit <- glm(unlist(dvs) ~ 
+                                                    unlist(epsilon.perm.list)  + 
+                                                    Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
+                                                    )) -1, family = family)$coefficients # eq. 17
+                                }
+                                
+                                
+                                
+                                
+                                sampledEpsilon[sampleNr, xIV] <- perm.fit[1]
+                                if(sampleNr %in% 1:2){ # only compute the observedEpsilons once (and compare with second sample for safety)
+                                  # compare sampledEpsilon with epsilon!
+                                  if(family == "gaussian"){
+                                    obs.fit <- lm(unlist(dvs) ~ 
+                                                    unlist(epsilon.list)  + 
+                                                    Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
+                                                    )) -1)$coefficients # eq. 17
+                                  }else{#non-gaussian
+                                    obs.fit <- glm(unlist(dvs) ~ 
+                                                     unlist(epsilon.list)  + 
+                                                     Reduce(rbind,lapply(1:length(Z.m.list),function(x) sapply(Z.m.list[[x]], function(y) y)
+                                                     )) -1, family = family)$coefficients # eq. 17
+                                  }
+                                  observedEpsilons[xIV] <- obs.fit[1]
+                                }
+                              }
+                              print(list(sampledEpsilon[sampleNr,],observedEpsilons))
+                              #setTxtProgressBar(pb, sampleNr) # update progress bar
+                              #write.table(paste0(sampleNr," out of ", samples),file = logfilename)
+                              
+                            }
     stopCluster(cl)
     
     sampledEpsilon <- data.frame(matrix(unlist(Epsilon.list[1:samples]), nrow=length(Epsilon.list[1:samples]), byrow=TRUE))
@@ -499,7 +507,7 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
     
     ecdf.plots <- list()
     for(est in 1:length(observedEpsilons)){
-      sampledEpsilon[,est] <= observedEpsilons[est]
+      sampledEpsilon[,est] <= observedEpsilons[est] 
       
       output[est,"p(1sided)"] <- ecdf(sampledEpsilon[,est])(observedEpsilons[est])
       #output[est,"p(Percentile,1sided)"] <- (sum(sampledEpsilon[,est] <= observedEpsilons[est])/nrow(sampledEpsilon))    }
@@ -510,14 +518,23 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
   
   output <- round(output,round.to)
   
-
-  output[,"significance"] <- sapply(output$`p(1sided)`, stars)
-  if(return.perms) return(list(sampledEstimates, observedEstimates))
-  out <- list(mode = c(mode, samples), plots = ecdf.plots,output = output, r.squared = r.squared)
+  # TODO: how to report the sampledEpsilons
+  if(mode == "dspQAP"){sampledEstimates <- NULL}else{
+    colnames(sampledEstimates) <- iv.names
+    rownames(sampledEstimates) <- 1:nrow(sampledEstimates)
+    output[,"significance"] <- sapply(output$`p(1sided)`, stars)
+  }
+  if(mode == "yQAP"){sampledEpsilon <- NULL}else{
+    colnames(sampledEpsilon) <- iv.names
+    rownames(sampledEpsilon) <- 1:nrow(sampledEpsilon)
+  }
+  
+  out <- list(mode = c(mode, samples), sampledEpsilon = sampledEpsilon, sampledEstimates = sampledEstimates, output = output, r.squared = r.squared)
   class(out) <- "netglm"
   return(out)
   
 }
+
 
 
 
