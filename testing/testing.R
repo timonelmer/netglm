@@ -4,8 +4,8 @@ library(sna)
 library(netglm)
 # create test data #
 # inspired by the example funciton in sna::netlm
-ivnet1<-rgraph(20,4)
-ivnet2<-rgraph(20,4)
+ivnet1<-sna::rgraph(20,4)
+ivnet2<-sna::rgraph(20,4)
 
 dv1<-ivnet1[1,,]+4*ivnet1[2,,]+2*ivnet1[3,,]   # Note that the fourth graph is unrelated
 dv1 <- dv1 + rnorm(400,mean = 1, sd = 1)
