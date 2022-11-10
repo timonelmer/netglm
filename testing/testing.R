@@ -3,7 +3,7 @@ rm(list = ls())
 library(sna)
 library(netglm)
 # create test data #
-# inspired by the example funciton in sna::netlm
+# inspired by the example function in sna::netlm
 ivnet1<-sna::rgraph(20,4)
 ivnet2<-sna::rgraph(20,4)
 
