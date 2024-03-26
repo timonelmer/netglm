@@ -1,7 +1,6 @@
 ##### netglm ######
 ####  processing ###
 
-
 makeSenderMatrix <- function(x, var) {
   out <- matrix(x[,var],length(x[,var]),length(x[,var]))
   rownames(out)<- colnames(out) <- x$ID

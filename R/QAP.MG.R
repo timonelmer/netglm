@@ -60,10 +60,10 @@
 #'
 #' @export
 QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
-                   iv.names = iv.names, mode = "yQAP" ,samples = 1000, diag = F, directed = T, 
-                   cpu = 1, round.to = 5, logfilename = "QAP.log",
-                   verbose = T,
-                   global.deltas = F){
+                   iv.names = iv.names, mode = "yQAP" ,samples = 1000, 
+                   diag = FALSE, directed = TRUE, cpu = 1, round.to = 5, 
+                   logfilename = "QAP.log", verbose = TRUE,
+                   global.deltas = FALSE){
   
   # #testing
   # ivnet1<-sna::rgraph(20,4)

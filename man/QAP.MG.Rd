@@ -12,13 +12,13 @@ QAP.MG(
   iv.names = iv.names,
   mode = "yQAP",
   samples = 1000,
-  diag = F,
-  directed = T,
+  diag = FALSE,
+  directed = TRUE,
   cpu = 1,
   round.to = 5,
   logfilename = "QAP.log",
-  verbose = T,
-  global.deltas = F
+  verbose = TRUE,
+  global.deltas = FALSE
 )
 }
 \arguments{
