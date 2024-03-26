@@ -98,7 +98,7 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
   # TODO: check dimensions of IVs and DVs
   
   if(!diag){ # get rid of diagonal values
-    if(verbose) cat("\n replace diagnoal values with NAs")
+    if(verbose) cat("\n replace diagonal values with NAs")
     for(DV in 1:length(dvs)){
       diag(dvs[[DV]]) <- NA
     }

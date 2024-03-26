@@ -60,7 +60,11 @@ gen.netglm <- function(n, m, family = "gaussian", intercept = FALSE,
   }
   
   # Define residual variance for gaussian model
-  if (is.null(red.var)) {red.var <- red.sd <- 1} else {red.sd <- sqrt(red.var)}
+  if (is.null(red.var) && family == "gaussian") {
+    red.var <- red.sd <- 1
+  } else {
+      red.sd <- sqrt(red.var)
+      }
   if (!is.null(red.var) && family == "binomial") {
     red.var <- red.sd <- NULL
     message("Dispersion parameter for binomial family taken to be 1, ",
@@ -72,7 +76,7 @@ gen.netglm <- function(n, m, family = "gaussian", intercept = FALSE,
   gen.rgraph.original <- gen.rgraph
   
   if (intercept) {
-    gen.rgraph <- abind::abind(array(1, dim = c(1, 20, 20)), gen.rgraph, along = 1)
+    gen.rgraph <- abind::abind(array(1, dim = c(1, n, n)), gen.rgraph, along = 1)
   }
   
   # Compute linear model (predicted values)
