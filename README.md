@@ -38,6 +38,7 @@ predictor variables each (i.e. four networks). For example, friendship
 networks in two different school classes as dependent variables.
 
 ``` r
+
 # create two sets of random networks as independent variables
 ivnet1<-sna::rgraph(20,4) 
 ivnet2<-sna::rgraph(20,4)
@@ -60,14 +61,9 @@ QAP model with the `QAP.MG` function:
 
 ``` r
 library(netglm)
-#> 
-#> Attaching package: 'netglm'
-#> The following object is masked from 'package:graphics':
-#> 
-#>     stars
 fit <- QAP.MG(dvs, ivs, iv.names = c("intercept",paste0("IV",1:4)), samples = 1000)
 #> 
-#>  replace diagnoal values with NAs
+#>  replace diagonal values with NAs
 #>  get the observed estimates
 #> Loading required package: foreach
 #> Loading required package: doParallel
@@ -82,19 +78,19 @@ We can inspect the output as follows:
 ``` r
 fit$output # for fixed effects estimates and their distribution
 #>           Estimates p(1sided) abs(p)    adj.d    Exp.V Exp.V.sd  2.5th P
-#> intercept   1.01619     0.000  0.000 20.60192  4.80993  0.18415  4.44410
-#> IV1         1.47846     1.000  0.000  8.24241  0.01171  0.17795 -0.33364
-#> IV2         3.41889     1.000  0.000 18.33039 -0.01602  0.18739 -0.37721
-#> IV3         2.56502     1.000  0.000 13.75200 -0.00818  0.18711 -0.36334
-#> IV4         0.03841     0.561  0.439  0.14869  0.01180  0.17896 -0.33683
+#> intercept   0.97029     0.000  0.000 21.20541  4.72336  0.17699  4.35717
+#> IV1         1.39495     1.000  0.000  8.00505 -0.00250  0.17457 -0.35509
+#> IV2         3.55058     1.000  0.000 20.15557 -0.00841  0.17658 -0.35319
+#> IV3         2.55761     1.000  0.000 13.94993  0.01096  0.18256 -0.34899
+#> IV4         0.10572     0.731  0.269  0.60746 -0.00525  0.18267 -0.37624
 #>           97.5th P significance
-#> intercept  5.18226          ***
-#> IV1        0.36012          ***
-#> IV2        0.33847          ***
-#> IV3        0.35080          ***
-#> IV4        0.34752
+#> intercept  5.05518          ***
+#> IV1        0.33972          ***
+#> IV2        0.33642          ***
+#> IV3        0.34768          ***
+#> IV4        0.36077
 
 fit$r.squared # for r.squared measures
 #>     r.squared adj.r.squared 
-#>     0.7983147     0.7972461
+#>     0.8110922     0.8100914
 ```

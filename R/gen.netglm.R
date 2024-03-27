@@ -33,8 +33,8 @@ gen.netglm <- function(n, m, family = "gaussian", intercept = FALSE,
   # import or suggest sna in the description file. Probably adding it to suggest
   # is the best option. I leave it here for now.
   # Same with abind
-  require(sna)
-  require(abind)
+  # require(sna)
+  # require(abind)
   
   # Set seed if provided
   if (!is.null(seed)) {set.seed(seed)}
@@ -47,9 +47,9 @@ gen.netglm <- function(n, m, family = "gaussian", intercept = FALSE,
   
   # Generate beta coefficients if not provided.
   if (is.null(beta)) {
-    beta <- rnorm(m)
+    beta <- stats::rnorm(m)
     if (intercept) {
-      beta <- c(-max(m/2, median(beta)), beta)
+      beta <- c(-max(m/2, stats::median(beta)), beta)
     }
   }
   
@@ -72,7 +72,7 @@ gen.netglm <- function(n, m, family = "gaussian", intercept = FALSE,
   }
   
   # Generate networks given the function rgraph of sna package
-  gen.rgraph <- rgraph(n, m, ...)
+  gen.rgraph <- sna::rgraph(n, m, ...)
   gen.rgraph.original <- gen.rgraph
   
   if (intercept) {
@@ -85,11 +85,11 @@ gen.netglm <- function(n, m, family = "gaussian", intercept = FALSE,
   
   # Compute dependent variable according to the family
   if (family == "gaussian") {
-    y <- xb + rnorm(n * n, 0, red.sd)
+    y <- xb + stats::rnorm(n * n, 0, red.sd)
   }
   
   if (family == "binomial") {
-    y <- rbinom(n * n, 1, plogis(xb))
+    y <- stats::rbinom(n * n, 1, stats::plogis(xb))
     y <- matrix(y, nrow = n, ncol = n)
   }
   
