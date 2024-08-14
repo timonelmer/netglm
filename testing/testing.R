@@ -5,6 +5,7 @@ library(sna)
 devtools::load_all()
 # create test data #
 # inspired by the example function in sna::netlm
+set.seed(56)
 ivnet1<-sna::rgraph(20,4)
 ivnet2<-sna::rgraph(20,4)
 
@@ -24,15 +25,16 @@ iv.names = c("intercept",paste0("IV",1:4))
 QAP.MG(dvs, ivs, iv.names = c("intercept",paste0("IV",1:4)), samples = 3000)
 
 # group 1 separately
-QAP.MG(list(dv1), list(iv1), iv.names = c("intercept",paste0("IV",1:4)), samples = 3000)
+set.seed(56)
+QAP.MG(list(dv1), list(iv1), iv.names = c("intercept",paste0("IV",1:4)), diag = F, samples = 100000)
 
 # comparison with the netlm function from the sna-package
-netlm(dv1, iv1, nullhyp = "qapy", reps = 3000)
+set.seed(56)
+netlm(dv1, iv1, nullhyp = "qapy", diag = F, reps = 100000, test.statistic = "beta")
 
 # computation time with parallel processing
 system.time(QAP.MG(dvs, ivs, iv.names = c("intercept",paste0("IV",1:4)), samples = 10000))
 system.time(QAP.MG(dvs, ivs, iv.names = c("intercept",paste0("IV",1:4)), samples = 10000, cpu = 4)) # test speed of 4 cpus
-
 
 #### Dekker semi partialing ######
 # group 1 separately
