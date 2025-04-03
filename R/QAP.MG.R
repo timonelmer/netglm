@@ -113,7 +113,7 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
   
   #rearrange list of ivs so its iv list per group 
   if(iv.list.per == "iv"){
-    cat("\n rearrange list of ivs so its iv list per group \n")
+    if(verbose) cat("\n rearrange list of ivs so its iv list per group \n")
     ivs.new <- list()
     n.ivs <- length(ivs)
     n.groups <- length(ivs[[1]])
@@ -137,6 +137,10 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
       observedLm <- lm(unlist(dvs) ~ Reduce(rbind,lapply(1:length(ivs),
                                                          function(x) sapply(ivs[[x]], function(y) y)
       )))
+    }else if(family == "inverse-Gaussian"){  
+      observedLm <- glm(unlist(dvs) ~ Reduce(rbind,lapply(1:length(ivs),
+                                                          function(x) sapply(ivs[[x]], function(y) y)
+      )), family = tweedie(var.power = 3, link.power = 0))  
     }else{ # non-gaussian
       observedLm <- glm(unlist(dvs) ~ Reduce(rbind,lapply(1:length(ivs),
                                                           function(x) sapply(ivs[[x]], function(y) y)
@@ -147,6 +151,10 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
       observedLm <- lm(unlist(lapply(dvs, function(x) x[lower.tri(x, diag = diag)])) ~
                          Reduce(rbind,lapply(1:length(ivs),function(x) sapply(ivs[[x]], function(y) y[lower.tri(y, diag = diag)]))),
       )
+    }else if(family == "inverse-Gaussian"){  
+      observedLm <- glm(unlist(lapply(dvs, function(x) x[lower.tri(x, diag = diag)])) ~
+                          Reduce(rbind,lapply(1:length(ivs),function(x) sapply(ivs[[x]], function(y) y[lower.tri(y, diag = diag)]))),
+                        family = tweedie(var.power = 3, link.power = 0))  
     }else{# non-gaussian
       observedLm <- glm(unlist(lapply(dvs, function(x) x[lower.tri(x, diag = diag)])) ~
                           Reduce(rbind,lapply(1:length(ivs),function(x) sapply(ivs[[x]], function(y) y[lower.tri(y, diag = diag)]))),
@@ -182,7 +190,11 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
   
   ##### YQAP #######
   
-  if(!directed) dvs <- lapply(dvs, function(x) x[lower.tri(x, diag = diag)] <- NA)
+  if(!directed){ dvs <- lapply(dvs, function(x) {
+      x[lower.tri(x, diag = FALSE)] <- NA
+      return(x)
+    })
+  }
   
   if(mode == "yQAP"){
     if(verbose) cat("\n estimating permuted networks with mode yQAP \n")
@@ -198,6 +210,16 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
           Reduce(rbind, lapply(1:length(ivs), function(x)
             sapply(ivs[[x]], function(y)
               y))))$coefficients
+        
+      }else if(family == "inverse-Gaussian"){  
+        tmp <- glm(unlist(lapply(dvs, function(x)
+        {
+          s <- sample(1:ncol(x))
+          return(c(x[s, s]))
+        })) ~
+          Reduce(rbind, lapply(1:length(ivs), function(x)
+            sapply(ivs[[x]], function(y)
+              y))), family = tweedie(var.power = 3, link.power = 0))$coefficients  
         
       }else{#non-gaussian
         tmp <- glm(unlist(lapply(dvs, function(x)
@@ -220,14 +242,20 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
     ecdf.plots <- list()
     for(est in 1:length(observedEstimates)){
       
-      output[est,"p(1sided)"] <- ecdf(sampledEstimates[,est])(observedEstimates[est])
-      output[est,"abs(p)"] <- output[est,"p(1sided)"] 
-      output[est,"abs(p)"][output[est,"p(1sided)"] > 0.5] <- 1-output[est,"abs(p)"][output[est,"p(1sided)"] > 0.5]
-      output[est,"adj.d"] <- abs(mean(sampledEstimates[,est]) - observedEstimates[est])/sd(sampledEstimates[,est])
-      output[est,"Exp.V"] <- mean(sampledEstimates[,est], na.rm = T)
-      output[est,"Exp.V.sd"] <- sd(sampledEstimates[,est], na.rm = T)
+      #output[est,"p(1sided)"] <- mean(sampledEstimates[,est] <= observedEstimates[est])# ecdf(sampledEstimates[,est])(observedEstimates[est])
+      #output[est,"p(2sided)"] <- mean(sampledEstimates[,est] >= abs(observedEstimates[est]))
+      
+      output[est,"Pr(<=b)"] <- mean(sampledEstimates[,est] <= observedEstimates[est])
+      output[est,"Pr(>=b)"] <- mean(sampledEstimates[,est] >= observedEstimates[est])
+      output[est,"Pr(>=|b|)"] <- mean(sampledEstimates[,est] >= abs(observedEstimates[est]))
+      
+      #output[est,"adj.d"] <- abs(mean(sampledEstimates[,est]) - observedEstimates[est])/sd(sampledEstimates[,est])
+      #output[est,"Exp.V"] <- mean(sampledEstimates[,est], na.rm = T)
+      #output[est,"Exp.V.sd"] <- sd(sampledEstimates[,est], na.rm = T)
       output[est,"2.5th P"] <- quantile(sampledEstimates[,est],probs=c(.025))
       output[est,"97.5th P"] <- quantile(sampledEstimates[,est],probs=c(.975))
+      
+
       
       
     }
@@ -296,7 +324,8 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
                                   }else{
                                     #local deltas
                                     deltas.m <- lm(as.numeric(X.m) ~ sapply(Z.m,function(x) x) -1)$coefficients # get the deltas (eq. 16 in paper)
-                                    if(family != "gaussian") stop("to implement for non gaussian")
+                                    #if(family != "gaussian") stop("to implement for non gaussian")
+                                    
                                   }
                                   
                                   epsilon.m <- X.m - Reduce("+",lapply(1:length(Z.m), function(x) Z.m[[x]] * deltas.m[x])) # eq. 15
