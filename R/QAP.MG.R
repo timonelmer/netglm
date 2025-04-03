@@ -247,7 +247,8 @@ QAP.MG <- function(dvs, ivs, iv.list.per = "group", family = "gaussian",
       
       output[est,"Pr(<=b)"] <- mean(sampledEstimates[,est] <= observedEstimates[est])
       output[est,"Pr(>=b)"] <- mean(sampledEstimates[,est] >= observedEstimates[est])
-      output[est,"Pr(>=|b|)"] <- mean(sampledEstimates[,est] >= abs(observedEstimates[est]))
+      
+      output[est,"Pr(>=|b|)"] <- mean(abs(sampledEstimates[,est]) >= abs(observedEstimates[est])) # because see https://stats.stackexchange.com/questions/35000/why-do-we-take-the-absolute-value-in-a-hypothesis-test
       
       #output[est,"adj.d"] <- abs(mean(sampledEstimates[,est]) - observedEstimates[est])/sd(sampledEstimates[,est])
       #output[est,"Exp.V"] <- mean(sampledEstimates[,est], na.rm = T)
